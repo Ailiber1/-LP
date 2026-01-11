@@ -1,1 +1,330 @@
 
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Game Gallery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Serif+JP:wght@600;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+  <style>
+    :root{
+      --bg:#05070a;
+      --line:rgba(70,255,170,.18);
+      --text:#e9fff4;
+      --muted:rgba(233,255,244,.72);
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif;
+      color:var(--text);
+      background:radial-gradient(1200px 700px at 30% -10%, rgba(34,255,154,.25), transparent 60%),
+                 radial-gradient(900px 600px at 120% 10%, rgba(0,255,166,.14), transparent 55%),
+                 linear-gradient(180deg, #05070a, #020304);
+      overflow-x:hidden;
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:28px 18px 64px; position:relative;}
+    header{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+      padding:18px;border:1px solid var(--line);border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(10,14,18,.82), rgba(10,14,18,.58));
+      box-shadow: var(--shadow);backdrop-filter: blur(10px);
+      position:sticky;top:16px;z-index:10;
+    }
+    .brand{display:flex;align-items:center;gap:12px;min-width:240px;}
+    .logo{
+      width:38px;height:38px;border-radius:12px;
+      background:radial-gradient(circle at 35% 30%, rgba(34,255,154,.75), rgba(34,255,154,.18) 55%, rgba(0,0,0,.0) 56%),
+                 linear-gradient(180deg, rgba(34,255,154,.18), rgba(0,0,0,.0));
+      border:1px solid rgba(34,255,154,.35);
+      box-shadow: 0 0 0 4px rgba(34,255,154,.06), 0 0 24px rgba(34,255,154,.18);
+    }
+    .brand h1{font-size:14px;letter-spacing:.12em;margin:0;font-weight:700;text-transform:uppercase}
+    .brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+
+    .search{flex:1;display:flex;align-items:center;gap:10px;min-width:260px;}
+    .searchbox{
+      flex:1;display:flex;align-items:center;gap:10px;
+      padding:10px 12px;border-radius:14px;border:1px solid rgba(34,255,154,.25);
+      background:linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.08));
+      box-shadow: inset 0 0 0 1px rgba(0,255,166,.06);
+    }
+    .searchbox input{width:100%;border:0;outline:none;background:transparent;color:var(--text);font-size:14px}
+    .searchbox input::placeholder{color:rgba(233,255,244,.55)}
+
+    .chips{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .chip{
+      cursor:pointer;user-select:none;font-size:12px;padding:8px 10px;border-radius:999px;
+      border:1px solid rgba(34,255,154,.22);
+      background:linear-gradient(180deg, rgba(10,14,18,.65), rgba(10,14,18,.35));
+      color:rgba(233,255,244,.86);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+      white-space:nowrap;
+    }
+    .chip:hover{transform: translateY(-1px); border-color: rgba(34,255,154,.42); box-shadow: 0 0 18px rgba(34,255,154,.12)}
+    .chip.active{border-color: rgba(34,255,154,.60); box-shadow: 0 0 22px rgba(34,255,154,.18)}
+
+    .hero{margin:22px 0 14px;padding:22px 18px;border-radius:var(--radius);border:1px solid rgba(34,255,154,.16);
+      background:linear-gradient(180deg, rgba(10,14,18,.56), rgba(10,14,18,.30));
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);backdrop-filter: blur(10px);}
+    .hero-top{display:flex; align-items:flex-end; justify-content:space-between; gap:14px; flex-wrap:wrap}
+    .hero h2{margin:0;font-size:18px;letter-spacing:.03em}
+    .hero p{margin:8px 0 0;color:rgba(233,255,244,.74);font-size:13px;line-height:1.6}
+    .meta{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid rgba(34,255,154,.18);background:rgba(0,0,0,.18);color:rgba(233,255,244,.78);}
+
+    .grid{display:grid;grid-template-columns: repeat(4, minmax(0, 1fr));gap:14px;margin-top:14px;}
+    @media (max-width: 1020px){.grid{grid-template-columns: repeat(3, minmax(0,1fr));}}
+    @media (max-width: 720px){.grid{grid-template-columns: repeat(2, minmax(0,1fr));}}
+    @media (max-width: 420px){.grid{grid-template-columns: 1fr;}}
+
+    .card{
+      position:relative;border-radius:18px;border:1px solid rgba(34,255,154,.16);
+      background:linear-gradient(180deg, rgba(10,14,18,.72), rgba(10,14,18,.45));
+      overflow:hidden;box-shadow: 0 14px 44px rgba(0,0,0,.42);
+      transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+    .card:hover{transform: translateY(-4px); border-color: rgba(34,255,154,.35); box-shadow: 0 22px 70px rgba(0,0,0,.58)}
+    .thumb{aspect-ratio: 16/10;border-bottom:1px solid rgba(34,255,154,.12);position:relative;overflow:hidden;}
+    .pkgimg{width:100%;height:100%;object-fit:contain;object-position:center;padding:6px;background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.04));filter:none;}
+    .pkgimg--gold{padding:0;background:transparent;object-fit:cover;object-position:center top;filter:none;}
+
+    .body{padding:12px 14px 14px;}
+    .titleline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 8px;}
+    .titleline h3{margin:0;font-size:14px;letter-spacing:.06em;}
+    .mini-badge{font-size:11px;padding:6px 8px;border-radius:999px;border:1px solid rgba(34,255,154,.22);background:rgba(34,255,154,.06);color:rgba(233,255,244,.84);}
+    .desc{margin:0;color:rgba(233,255,244,.76);font-size:12px;line-height:1.55;min-height:54px}
+    .row{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .pts{font-size:12px;color:rgba(233,255,244,.70)}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;font-weight:700;font-size:12px;letter-spacing:.04em;
+      padding:10px 12px;border-radius:12px;border:1px solid rgba(34,255,154,.35);color:var(--text);
+      background:linear-gradient(180deg, rgba(34,255,154,.18), rgba(0,0,0,.08));
+      box-shadow: 0 0 0 4px rgba(34,255,154,.05), 0 0 28px rgba(34,255,154,.18);
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;white-space:nowrap;
+    }
+
+    .empty{margin:18px 0 0;padding:20px;border-radius:var(--radius);border:1px dashed rgba(34,255,154,.24);background:rgba(0,0,0,.18);color:rgba(233,255,244,.76);}
+    footer{margin-top:28px;color:rgba(233,255,244,.55);font-size:12px; text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>GAME GALLERY</h1>
+          <p>Rich / SF neon showcase</p>
+        </div>
+      </div>
+
+      <div class="search">
+        <div class="searchbox" title="類似検索（fuzzy search）">
+          <input id="q" type="search" placeholder="スタイル名やタイトルで検索…（類似もヒット）" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="chips" role="tablist" aria-label="filters">
+        <div class="chip active" data-filter="recommended" role="tab" aria-selected="true">おすすめ</div>
+        <div class="chip" data-filter="popular" role="tab" aria-selected="false">人気</div>
+        <div class="chip" data-filter="new" role="tab" aria-selected="false">最新作</div>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h2>SFネオンで並ぶ、ゲームパッケージギャラリー</h2>
+          <p>検索（類似ヒット）＋カテゴリ表示。</p>
+        </div>
+        <div class="meta">
+          <span class="pill" id="count">0 titles</span>
+          <span class="pill">Black × Neon Green</span>
+        </div>
+      </div>
+    </section>
+
+    <main>
+      <div id="grid" class="grid" aria-live="polite"></div>
+      <div id="empty" class="empty" style="display:none">該当するゲームがありません。検索語を変えてください。</div>
+    </main>
+
+    <footer>Demo LP • Replace data[] with your real titles / images / links</footer>
+  </div>
+
+  <script>
+    // ※ここは「大富豪のパッケージ画像」をHTML内に埋め込むための関数です（他PCでも確実に表示）
+    function createDaifugoPackageImage(){
+      const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0b3b2e"/>
+            <stop offset="1" stop-color="#051612"/>
+          </linearGradient>
+          <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ffffff"/>
+            <stop offset="0.10" stop-color="#fff6d6"/>
+            <stop offset="0.26" stop-color="#ffd24d"/>
+            <stop offset="0.48" stop-color="#ffea9a"/>
+            <stop offset="0.70" stop-color="#f0b43c"/>
+            <stop offset="1" stop-color="#7a4a12"/>
+          </linearGradient>
+          <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="0.35" stop-color="#fff" stop-opacity="0.95"/>
+            <stop offset="0.65" stop-color="#fff" stop-opacity="0.25"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity="0.45"/>
+          </filter>
+          <mask id="titleMask">
+            <rect width="1600" height="1000" fill="#000"/>
+            <text x="800" y="420" font-family="'Noto Serif JP', serif" font-size="320" font-weight="900"
+                  text-anchor="middle" fill="#fff">大富豪</text>
+          </mask>
+        </defs>
+
+        <rect width="1600" height="1000" rx="64" fill="url(#bg)"/>
+        <rect x="70" y="70" width="1460" height="860" rx="54" fill="none" stroke="url(#gold)" stroke-width="10" opacity="0.95"/>
+
+        <text x="800" y="420" font-family="'Noto Serif JP', serif" font-size="320" font-weight="900"
+              text-anchor="middle" fill="url(#gold)" stroke="#5a2e00" stroke-width="14" paint-order="stroke fill">大富豪</text>
+
+        <g mask="url(#titleMask)">
+          <rect x="0" y="250" width="1600" height="220" fill="url(#sheen)" opacity="0.95"/>
+        </g>
+
+        <g filter="url(#shadow)">
+          <g transform="translate(300,620) rotate(-10)">
+            <rect width="300" height="420" rx="26" fill="#f7f7f7"/>
+            <rect x="16" y="16" width="268" height="388" rx="20" fill="#fff" stroke="#e6e6e6"/>
+            <text x="40" y="80" font-family="Inter, sans-serif" font-size="54" font-weight="800" fill="#111">A</text>
+          </g>
+          <g transform="translate(520,640) rotate(-2)">
+            <rect width="300" height="420" rx="26" fill="#f7f7f7"/>
+            <rect x="16" y="16" width="268" height="388" rx="20" fill="#fff" stroke="#e6e6e6"/>
+            <text x="40" y="80" font-family="Inter, sans-serif" font-size="54" font-weight="800" fill="#111">8</text>
+            <path d="M150 160l48 84-48 84-48-84z" fill="#d22"/>
+          </g>
+          <g transform="translate(740,610) rotate(8)">
+            <rect width="300" height="420" rx="26" fill="#f7f7f7"/>
+            <rect x="16" y="16" width="268" height="388" rx="20" fill="#fff" stroke="#e6e6e6"/>
+            <text x="40" y="80" font-family="Inter, sans-serif" font-size="54" font-weight="800" fill="#111">K</text>
+          </g>
+          <g transform="translate(960,640) rotate(16)">
+            <rect width="300" height="420" rx="26" fill="#f7f7f7"/>
+            <rect x="16" y="16" width="268" height="388" rx="20" fill="#fff" stroke="#e6e6e6"/>
+            <text x="40" y="80" font-family="Inter, sans-serif" font-size="54" font-weight="800" fill="#111">Q</text>
+          </g>
+        </g>
+      </svg>`;
+      const encoded = encodeURIComponent(svg).replace(/%0A/g,"").replace(/%20/g," ");
+      return `data:image/svg+xml;charset=utf-8,${encoded}`;
+    }
+
+    const data = [
+      { id:"g-000", title:"大富豪", badge:"おすすめ", filter:"recommended", pts:50,
+        tags:["card","daifugo","trump","classic"],
+        desc:"定番カードゲーム『大富豪』。革命・縛り・8切りを駆使して頂点を目指す。",
+        url:"./games/daifugo/index.html",
+        image:createDaifugoPackageImage()
+      },
+      { id:"g-001", title:"NEON RAIDERS", badge:"おすすめ", filter:"recommended", pts:49,
+        tags:["sf","action","neon","raid"],
+        desc:"電子回路都市を強襲する高速レイド。コンボと回避でスコアを伸ばす。",
+        url:"./games/neon-raiders/index.html"
+      }
+    ];
+
+    const grid = document.getElementById("grid");
+    const empty = document.getElementById("empty");
+    const q = document.getElementById("q");
+    const count = document.getElementById("count");
+    const chips = Array.from(document.querySelectorAll(".chip"));
+    let activeFilter = "recommended";
+
+    const fuse = new Fuse(data, {
+      includeScore: true,
+      threshold: 0.38,
+      ignoreLocation: true,
+      keys: [{ name:"title", weight:0.55 },{ name:"tags", weight:0.30 },{ name:"desc", weight:0.15 }]
+    });
+
+    function escapeHtml(str){
+      return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    function render(list){
+      grid.innerHTML = "";
+      if (!list.length){
+        empty.style.display = "block";
+        count.textContent = "0 titles";
+        return;
+      }
+      empty.style.display = "none";
+      count.textContent = `${list.length} titles`;
+
+      const frag = document.createDocumentFragment();
+      for (const item of list){
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="thumb">
+            ${item.image ? `<img class="pkgimg ${item.id === 'g-000' ? 'pkgimg--gold' : ''}" src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}" />` : ``}
+          </div>
+          <div class="body">
+            <div class="titleline">
+              <h3>${escapeHtml(item.title)}</h3>
+              <span class="mini-badge">${escapeHtml(item.badge)}</span>
+            </div>
+            <p class="desc">${escapeHtml(item.desc)}</p>
+            <div class="row">
+              <span class="pts">${escapeHtml(String(item.pts))} PTS</span>
+              <a class="btn" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">ゲーム画面へ</a>
+            </div>
+          </div>
+        `;
+        frag.appendChild(card);
+      }
+      grid.appendChild(frag);
+    }
+
+    function apply(){
+      const term = q.value.trim();
+      const base = data.filter(d => d.filter === activeFilter);
+      if (!term){ render(base); return; }
+      const results = fuse.search(term).map(r => r.item).filter(it => it.filter === activeFilter);
+      render(results);
+    }
+
+    chips.forEach(chip => {
+      chip.addEventListener("click", () => {
+        chips.forEach(c => { c.classList.remove("active"); c.setAttribute("aria-selected", "false"); });
+        chip.classList.add("active");
+        chip.setAttribute("aria-selected", "true");
+        activeFilter = chip.dataset.filter;
+        apply();
+      });
+    });
+
+    q.addEventListener("input", apply);
+    apply();
+
+    console.assert(Array.isArray(data) && data.length >= 1, "data must be non-empty");
+    console.assert(typeof createDaifugoPackageImage() === "string" && createDaifugoPackageImage().startsWith("data:image/"), "image must be data:image URL");
+    console.assert(typeof Fuse === "function", "Fuse.js must be loaded");
+  </script>
+</body>
+</html>
+
+
