@@ -3540,8 +3540,15 @@
         function updateTurnDisplay() {
             document.getElementById('currentTurn').textContent = `P${GameState.currentPlayer + 1}`;
             
-            document.querySelectorAll('.player-tag').forEach((tag, i) => {
-                tag.classList.toggle('active', i === GameState.currentPlayer);
+            // プレイヤータグのアクティブ状態を更新
+            const tags = document.querySelectorAll('.player-tag');
+            tags.forEach((tag) => {
+                // タグのクラスからプレイヤー番号を取得 (p1, p2, p3)
+                const match = tag.className.match(/p(\d+)/);
+                if (match) {
+                    const tagPlayerIndex = parseInt(match[1]) - 1; // p1 -> 0, p2 -> 1, etc.
+                    tag.classList.toggle('active', tagPlayerIndex === GameState.currentPlayer);
+                }
             });
         }
 
@@ -3587,41 +3594,35 @@
                     selectedMove = validMoves[0];
                 }
             } else {
-                // 強：完全な先読み（深さ5）+ 高度な評価 + 戦略的な開始手
-                const totalBlocks = GameState.board.flat().filter(c => c !== null).length;
-                
-                // 序盤（最初の2手）はランダム性を持たせつつ戦略的に
-                if (totalBlocks <= 3) {
-                    // 中央付近の有効な手を優先
-                    const center = Math.floor(GameState.boardSize / 2);
-                    const strategicMoves = validMoves.filter(m => {
-                        const distFromCenter = Math.abs(m.x - center) + Math.abs(m.y - center);
-                        return distFromCenter <= 2;
-                    });
-                    
-                    if (strategicMoves.length > 0) {
-                        // 戦略的な手からランダム選択
-                        selectedMove = strategicMoves[Math.floor(Math.random() * strategicMoves.length)];
-                    } else {
-                        validMoves.forEach(move => {
-                            move.score = evaluateMoveWithLookahead(move.x, move.y, 5);
-                        });
-                        validMoves.sort((a, b) => b.score - a.score);
-                        // 上位3手からランダム選択（同点対策）
-                        const topMoves = validMoves.slice(0, Math.min(3, validMoves.length));
-                        selectedMove = topMoves[Math.floor(Math.random() * topMoves.length)];
-                    }
+                // 強：最強AI - 常に最適な手を選ぶ
+                // 即勝利・即ブロックを最優先でチェック
+                const immediateWin = findImmediateWin(1); // CPU勝利
+                if (immediateWin) {
+                    selectedMove = immediateWin;
                 } else {
-                    // 中盤以降は完全な先読み
-                    validMoves.forEach(move => {
-                        move.score = evaluateMoveWithLookahead(move.x, move.y, 5);
-                    });
-                    validMoves.sort((a, b) => b.score - a.score);
-                    
-                    // 同点の手がある場合はランダム選択
-                    const bestScore = validMoves[0].score;
-                    const bestMoves = validMoves.filter(m => m.score === bestScore);
-                    selectedMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+                    const immediateBlock = findImmediateWin(0); // プレイヤー勝利阻止
+                    if (immediateBlock) {
+                        selectedMove = immediateBlock;
+                    } else {
+                        // ダブルリーチ（2方向同時リーチ）を探す
+                        const doubleReach = findDoubleReachMove(1);
+                        if (doubleReach) {
+                            selectedMove = doubleReach;
+                        } else {
+                            // 相手のダブルリーチを阻止
+                            const blockDoubleReach = findDoubleReachMove(0);
+                            if (blockDoubleReach) {
+                                selectedMove = blockDoubleReach;
+                            } else {
+                                // 深い先読みで最善手を選択（深さ6）
+                                validMoves.forEach(move => {
+                                    move.score = evaluateMoveWithLookahead(move.x, move.y, 6);
+                                });
+                                validMoves.sort((a, b) => b.score - a.score);
+                                selectedMove = validMoves[0];
+                            }
+                        }
+                    }
                 }
             }
             
@@ -3634,6 +3635,98 @@
                     placeBlock(safeMoves[0].x, safeMoves[0].y);
                 }
             }
+        }
+        
+        // 即勝利できる手を探す
+        function findImmediateWin(player) {
+            const validMoves = getAllValidMoves();
+            for (const move of validMoves) {
+                GameState.board[move.y][move.x] = player;
+                const wins = checkWin(move.x, move.y);
+                GameState.board[move.y][move.x] = null;
+                if (wins) {
+                    return move;
+                }
+            }
+            return null;
+        }
+        
+        // ダブルリーチ（2方向以上のリーチ）を作れる手を探す
+        function findDoubleReachMove(player) {
+            const validMoves = getAllValidMoves();
+            const winLength = GameState.winLength;
+            
+            for (const move of validMoves) {
+                GameState.board[move.y][move.x] = player;
+                
+                let reachCount = 0;
+                const directions = [
+                    [0, 1],   // 縦
+                    [1, 0],   // 横
+                    [1, 1],   // 斜め \
+                    [1, -1]   // 斜め /
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    if (isReach(move.x, move.y, dx, dy, player)) {
+                        reachCount++;
+                    }
+                }
+                
+                GameState.board[move.y][move.x] = null;
+                
+                if (reachCount >= 2) {
+                    return move;
+                }
+            }
+            return null;
+        }
+        
+        // 特定方向でリーチ（あと1つで勝利）かどうかチェック
+        function isReach(x, y, dx, dy, player) {
+            const winLength = GameState.winLength;
+            
+            // 両方向にカウント
+            let count = 1;
+            let emptyCount = 0;
+            let emptyPos = null;
+            
+            // 正方向
+            for (let i = 1; i < winLength; i++) {
+                const nx = x + dx * i;
+                const ny = y + dy * i;
+                if (nx < 0 || nx >= GameState.boardSize || ny < 0 || ny >= GameState.boardSize) break;
+                
+                const cell = GameState.board[ny][nx];
+                if (cell === player) {
+                    count++;
+                } else if (cell === null && emptyCount === 0) {
+                    emptyCount++;
+                    emptyPos = {x: nx, y: ny};
+                } else {
+                    break;
+                }
+            }
+            
+            // 逆方向
+            for (let i = 1; i < winLength; i++) {
+                const nx = x - dx * i;
+                const ny = y - dy * i;
+                if (nx < 0 || nx >= GameState.boardSize || ny < 0 || ny >= GameState.boardSize) break;
+                
+                const cell = GameState.board[ny][nx];
+                if (cell === player) {
+                    count++;
+                } else if (cell === null && emptyCount === 0) {
+                    emptyCount++;
+                    emptyPos = {x: nx, y: ny};
+                } else {
+                    break;
+                }
+            }
+            
+            // リーチ: winLength - 1個並んでいて、空きが1つある
+            return count >= winLength - 1 && emptyCount === 1 && emptyPos && canPlaceAt(emptyPos.x, emptyPos.y);
         }
 
         // 先読み付き評価（ミニマックス）
@@ -3939,13 +4032,20 @@
         // ==================== GAME LIFECYCLE ====================
         function startGame() {
             GameState.gameActive = true;
-            GameState.currentPlayer = 0;
             GameState.isPlacing = false; // 配置中フラグをリセット
+            
+            // マルチプレイ以外の場合のみcurrentPlayerを0に設定
+            // マルチプレイではstartMultiplayerGameで既にFirebaseから設定済み
+            if (GameState.gameMode !== 'multi') {
+                GameState.currentPlayer = 0;
+            }
             
             // マルチプレイ以外、またはボードが未初期化の場合のみinitBoard
             if (GameState.gameMode !== 'multi' || !GameState.board || GameState.board.length !== GameState.boardSize) {
                 initBoard();
             }
+            
+            console.log('startGame - currentPlayer:', GameState.currentPlayer, 'myIndex:', SyncLayer.playerIndex);
             
             renderBoard();
             renderPlayersBar();
@@ -3965,9 +4065,11 @@
             
             GameState.players.forEach((player, i) => {
                 const tag = document.createElement('div');
-                tag.className = `player-tag p${i + 1}`;
-                tag.textContent = `P${i + 1}: ${player.name}`;
-                if (i === 0) tag.classList.add('active');
+                // マルチプレイではoriginalIndexを使用
+                const playerIndex = player.originalIndex !== undefined ? player.originalIndex : i;
+                tag.className = `player-tag p${playerIndex + 1}`;
+                tag.textContent = `P${playerIndex + 1}: ${player.name}`;
+                if (playerIndex === GameState.currentPlayer) tag.classList.add('active');
                 bar.appendChild(tag);
             });
         }
