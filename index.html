@@ -4987,11 +4987,13 @@
                     // ルーレット表示
                     hideModal('multiWaitingModal');
                     hideModal('spectatorWaitingModal');
+                    hideModal('rematchWaitingModal');
                     await showRoulette();
                 } else if (status === 'playing') {
                     // ルーレット後にゲーム開始
                     hideModal('rouletteModal');
                     hideModal('spectatorWaitingModal');
+                    hideModal('rematchWaitingModal');
                     startMultiplayerGame();
                 } else if (status === 'ended') {
                     // ゲーム終了処理
